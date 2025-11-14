@@ -1,8 +1,12 @@
-# opencv script to scan hand drawn figures (binary black-white color)
-# author : jules matz
+# OpenCV script to scan hand drawn figures
+# author: jules matz
 
 import cv2
 import numpy as np
+
+# parameters
+COLOR = False
+DESIRED_WIDTH = 800 # pixels
 
 def get_dominant_color_hsv(image, contour):
     # Create a blank mask
@@ -65,17 +69,31 @@ while(1):
     filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 15]
     
     # Iterate over each contour
+    xmin = img.shape[1] # width
+    ymin = img.shape[0] # height
+    xmax = 0
+    ymax = 0
     for contour in filtered_contours:
-        # Get the dominant color of the contour using HSV
-        dominant_color = get_dominant_color_hsv(img, contour)
+        # get bounds
+        min_val = np.min(contour,0)
+        max_val = np.max(contour,0)
+        xmin = min_val[0][1] if min_val[0][1] < xmin else xmin
+        ymin = min_val[0][0] if min_val[0][0] < ymin else ymin
+        xmax = max_val[0][1] if max_val[0][1] > xmax else xmax
+        ymax = max_val[0][0] if max_val[0][0] > ymax else ymax
+        if COLOR:
+            # Get the dominant color of the contour using HSV
+            dominant_color = get_dominant_color_hsv(img, contour)
 
-        if dominant_color in COLOR_RGB:
-            # Assign the default RGB code for the dominant color
-            rgb_code = COLOR_RGB[dominant_color]
-            bgr_code = (rgb_code[2], rgb_code[1], rgb_code[0])
+            if dominant_color in COLOR_RGB:
+                # Assign the default RGB code for the dominant color
+                rgb_code = COLOR_RGB[dominant_color]
+                bgr_code = (rgb_code[2], rgb_code[1], rgb_code[0])
 
-            # Draw the contour with the assigned color (filled)
-            cv2.drawContours(img, [contour], -1, bgr_code, thickness=cv2.FILLED)
+                # Draw the contour with the assigned color (filled)
+                cv2.drawContours(img, [contour], -1, bgr_code, thickness=cv2.FILLED)
+        else:
+            cv2.drawContours(img, [contour], -1, [0,0,0], thickness=cv2.FILLED)
 
     mask = np.zeros_like(img_bin, dtype=np.uint8)
     cv2.drawContours(mask, filtered_contours, -1, 255, thickness=cv2.FILLED)
@@ -99,8 +117,16 @@ while(1):
         # Create an alpha channel: 255 (opaque) where mask is white, 0 (transparent) where mask is black
         alpha = mask
         # Merge the BGR image with the alpha channel
-        result_with_alpha = cv2.merge((img[:,:,0], img[:,:,1], img[:,:,2], alpha))
-        cv2.imwrite("figure"+str(nb_shot)+".png", result_with_alpha)
+        img_alpha = cv2.merge((img[:,:,0], img[:,:,1], img[:,:,2], alpha))
+        # crop
+        img_alpha = img_alpha[xmin:xmax, ymin:ymax]
+        # scale to DESIRED_WIDTH
+        cropped_img_width = img_alpha.shape[1]
+        cropped_img_height = img_alpha.shape[0]
+        scale_factor = DESIRED_WIDTH / cropped_img_width
+        img_alpha = cv2.resize(img_alpha,(DESIRED_WIDTH, int(scale_factor*cropped_img_height)), interpolation = cv2.INTER_CUBIC)
+        # save image
+        cv2.imwrite("figure"+str(nb_shot)+".png", img_alpha)
 
     
 cv2.destroyAllWindows()
