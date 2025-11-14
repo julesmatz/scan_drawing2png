@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 # parameters
+CAMERA_NB = 0 # try 1, 2, etc. if external webcam
 COLOR = False
 DESIRED_WIDTH = 800 # pixels
 
@@ -38,7 +39,7 @@ def get_dominant_color_hsv(image, contour):
     else:
         return 'green'
 
-cap = cv2.VideoCapture(0) # try 1, 2, etc. if external webcam
+cap = cv2.VideoCapture(CAMERA_NB)
 
 # Define default RGB codes for each color
 COLOR_RGB = {
@@ -59,8 +60,15 @@ while(1):
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
+    # binarize using adaptative threshold
     img_bin = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
                                    cv2.THRESH_BINARY_INV, 201, 15)
+    # smooth by successive erosion and dilation
+    kernel = np.ones((3,3),np.uint8)
+    for i1 in range(8):
+        img_bin = cv2.erode(img_bin,kernel,iterations = 1)
+        img_bin = cv2.dilate(img_bin,kernel,iterations = 1)
+
     binary_image_3ch = cv2.cvtColor(img_bin, cv2.COLOR_GRAY2BGR)
 
     contours, _ = cv2.findContours(img_bin, cv2.RETR_CCOMP,
@@ -106,8 +114,8 @@ while(1):
     # Combine the masked image and the white background
     result = cv2.add(white_bg, img)
 
-    cv2.imshow('raw',frame)
-    cv2.imshow('filt',result)
+    cv2.imshow('input',frame)
+    cv2.imshow('output',result)
 
     k = cv2.waitKey(5) & 0xFF
     if k == 27:
