@@ -1,5 +1,5 @@
 # scan_drawing2png
-Scan a drawing using a webcam. For adding quick and dirty images from handmade drawings to illustrate concepts (diagram, charts, mechanical model, etc.)
+Scan a drawing using a webcam. Quick and dirty way to get png images from handmade drawings to illustrate concepts (diagram, charts, mechanical model, etc.)
 
 ## Requirements
 NumPy, OpenCV
